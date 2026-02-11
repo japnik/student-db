@@ -1328,7 +1328,7 @@ const App = () => {
                     <SessionLogForm student={selectedStudent} session={selectedSession} onSave={async (formData, files, sessionId) => {
                         try {
                             const { next_session_date, next_session_focus, ...sessionData } = formData;
-                            let attachment_urls = session?.attachment_urls || [];
+                            let attachment_urls = selectedSession?.attachment_urls || [];
 
                             // Handle File Uploads
                             if (files && files.length > 0) {
