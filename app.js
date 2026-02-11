@@ -1336,13 +1336,13 @@ const App = () => {
                                     const fileExt = file.name.split('.').pop();
                                     const fileName = `${selectedStudent.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
                                     const { data, error: uploadError } = await supabaseClient.storage
-                                        .from('session-materials')
+                                        .from('attachments')
                                         .upload(fileName, file);
 
                                     if (uploadError) throw uploadError;
 
                                     const { data: { publicUrl } } = supabaseClient.storage
-                                        .from('session-materials')
+                                        .from('attachments')
                                         .getPublicUrl(fileName);
 
                                     attachment_urls.push(publicUrl);
