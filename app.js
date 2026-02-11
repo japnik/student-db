@@ -40,39 +40,53 @@ const toLocalISO = (date) => {
     return localDate.toISOString().slice(0, 16);
 };
 
-const DateTimeInput = ({ label, name, value, onChange, required, placeholder }) => {
-    const inputRef = useRef(null);
-    const datalistId = `times-${name || Math.random().toString(36).substr(2, 9)}`;
-    const datePart = value && value.includes('T') ? value.split('T')[0] : new Date().toISOString().split('T')[0];
+const DateTimeInput = ({ label, value, onChange, required }) => {
+    // value is expected to be a local ISO string YYYY-MM-DDTHH:mm
+    const dateVal = value ? value.split('T')[0] : '';
+    const timeVal = value && value.includes('T') ? value.split('T')[1] : '09:00';
+
+    const handleDateChange = (e) => {
+        onChange({ target: { value: `${e.target.value}T${timeVal}` } });
+    };
+
+    const handleTimeChange = (e) => {
+        onChange({ target: { value: `${datePart}T${e.target.value}` } });
+    };
+
+    const datePart = dateVal || new Date().toISOString().split('T')[0];
+
+    const timeOptions = Array.from({ length: 48 }).map((_, i) => {
+        const h = Math.floor(i / 2).toString().padStart(2, '0');
+        const m = (i % 2 === 0 ? '00' : '30');
+        const time = `${h}:${m}`;
+        const label = new Date(`2000-01-01T${time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        return { value: time, label };
+    });
 
     return (
-        <div>
-            <label>{label}</label>
-            <div className="datetime-input-group">
-                <input
-                    ref={inputRef}
-                    type="datetime-local"
-                    name={name}
-                    value={value || ''}
-                    onChange={onChange}
-                    required={required}
-                    placeholder={placeholder}
-                    step="1800"
-                    list={datalistId}
-                />
-                <datalist id={datalistId}>
-                    {Array.from({ length: 48 }).map((_, i) => {
-                        const hour = Math.floor(i / 2).toString().padStart(2, '0');
-                        const min = (i % 2 === 0 ? '00' : '30');
-                        return <option key={i} value={`${datePart}T${hour}:${min}`} />;
-                    })}
-                </datalist>
-                <button
-                    type="button"
-                    className="btn-ok"
-                    onClick={() => inputRef.current?.blur()}
-                    title="Confirm Date & Time"
-                >OK</button>
+        <div className="flex flex-col gap-2">
+            <label className="text-sm font-bold opacity-70 mb-1">{label}</label>
+            <div className="flex gap-3">
+                <div className="flex-1 relative">
+                    <input
+                        type="date"
+                        value={datePart}
+                        onChange={handleDateChange}
+                        required={required}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-colors"
+                    />
+                </div>
+                <div className="w-1/3 relative">
+                    <select
+                        value={timeVal}
+                        onChange={(e) => onChange({ target: { value: `${datePart}T${e.target.value}` } })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-primary/50 transition-colors appearance-none"
+                    >
+                        {timeOptions.map(opt => (
+                            <option key={opt.value} value={opt.value} className="bg-slate-900">{opt.label}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
         </div>
     );
