@@ -1056,8 +1056,11 @@ const CalendarView = ({ allSessions, students, onSelectEvent }) => {
             <div className="calendar-grid">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="calendar-header-day">{d}</div>)}
                 {calendarDays.map((d, i) => {
-                    const dateStr = d.date.toISOString().split('T')[0];
-                    const daySessions = allSessions.filter(s => s.session_date && s.session_date.split('T')[0] === dateStr);
+                    const localDayStr = d.date.toDateString();
+                    const daySessions = allSessions.filter(s => {
+                        if (!s.session_date) return false;
+                        return new Date(s.session_date).toDateString() === localDayStr;
+                    });
 
                     return (
                         <div key={i} className={`calendar-day ${d.month !== 'current' ? 'other-month' : ''} ${isToday(d.date) ? 'today' : ''}`}>
