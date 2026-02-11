@@ -72,7 +72,7 @@ const Sidebar = ({ currentView, setView, onLogout }) => {
         <div className="sidebar">
             <div className="logo">
                 <i className="fas fa-graduation-cap"></i>
-                <span>Apex Manager</span>
+                <span>Dr Sahota Chem</span>
             </div>
             <nav style={{ flex: 1 }}>
                 {menuItems.map(item => (
@@ -590,7 +590,7 @@ const StudentForm = ({ onSave, onCancel, initialData }) => {
                         </div>
                         <div className="input-wrapper">
                             <label>School Name</label>
-                            <input name="school" value={formData.school || ''} onChange={handleChange} placeholder="e.g. Apex High" />
+                            <input name="school" value={formData.school || ''} onChange={handleChange} placeholder="e.g. Central High" />
                         </div>
                         <div className="input-wrapper">
                             <label>Academic Level</label>
@@ -1076,7 +1076,7 @@ const Login = ({ onLogin }) => {
                 <div className="auth-logo">
                     <i className="fas fa-graduation-cap"></i>
                 </div>
-                <h2>Apex Management</h2>
+                <h2>Dr Sahota Chem</h2>
                 <p>Sign in to access student analytics and session logs.</p>
                 <form className="auth-form" onSubmit={handleSubmit}>
                     <div className="input-wrapper">
@@ -1223,7 +1223,7 @@ const App = () => {
             <main className="main-content">
                 {view === 'dashboard' && (
                     <React.Fragment>
-                        <Header title="Apex Business Overview" status={status} errorMessage={errorMessage} />
+                        <Header title="Dr Sahota Chem Overview" status={status} errorMessage={errorMessage} />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             <PayoutCloud sessions={paidLast30} title="Revenue (Paid)" type="past" />
