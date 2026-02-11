@@ -817,7 +817,17 @@ const SessionLogForm = ({ student, session, onSave, onCancel }) => {
                     <label className="flex items-center gap-2">
                         <i className="fas fa-paperclip"></i> Attachments / Lesson Materials
                     </label>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
+                        {session?.attachment_urls && session.attachment_urls.length > 0 && (
+                            <div className="flex flex-wrap gap-2 p-3 bg-white/5 rounded-xl border border-white/10">
+                                {session.attachment_urls.map((url, idx) => (
+                                    <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="attachment-chip hover:bg-white/10 transition-colors">
+                                        <i className="fas fa-file-pdf text-red-400"></i>
+                                        <span>Existing Document {idx + 1}</span>
+                                    </a>
+                                ))}
+                            </div>
+                        )}
                         <input
                             type="file"
                             multiple
