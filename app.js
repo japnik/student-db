@@ -31,8 +31,20 @@ const getStatusColor = (isPaid, isPast) => {
 // 3. UI ATOMS & HELPERS
 // ==========================================
 
+const toLocalISO = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const offset = d.getTimezoneOffset();
+    const localDate = new Date(d.getTime() - (offset * 60 * 1000));
+    return localDate.toISOString().slice(0, 16);
+};
+
 const DateTimeInput = ({ label, name, value, onChange, required, placeholder }) => {
     const inputRef = useRef(null);
+    const datalistId = `times-${name || Math.random().toString(36).substr(2, 9)}`;
+    const datePart = value && value.includes('T') ? value.split('T')[0] : new Date().toISOString().split('T')[0];
+
     return (
         <div>
             <label>{label}</label>
@@ -46,7 +58,15 @@ const DateTimeInput = ({ label, name, value, onChange, required, placeholder }) 
                     required={required}
                     placeholder={placeholder}
                     step="1800"
+                    list={datalistId}
                 />
+                <datalist id={datalistId}>
+                    {Array.from({ length: 48 }).map((_, i) => {
+                        const hour = Math.floor(i / 2).toString().padStart(2, '0');
+                        const min = (i % 2 === 0 ? '00' : '30');
+                        return <option key={i} value={`${datePart}T${hour}:${min}`} />;
+                    })}
+                </datalist>
                 <button
                     type="button"
                     className="btn-ok"
@@ -688,7 +708,7 @@ const StudentForm = ({ onSave, onCancel, initialData }) => {
 const SessionLogForm = ({ student, session, onSave, onCancel }) => {
     const [nextSessionNum, setNextSessionNum] = useState(session?.session_number || null);
     const [formData, setFormData] = useState({
-        session_date: session ? new Date(session.session_date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+        session_date: session ? toLocalISO(session.session_date) : toLocalISO(new Date()),
         topics_covered: session?.topics_covered || '',
         next_session_date: '',
         next_session_focus: '',
@@ -1389,6 +1409,7 @@ const App = () => {
                             const payload = {
                                 ...sessionData,
                                 student_id: Number(selectedStudent.id),
+                                session_date: sessionData.session_date ? new Date(sessionData.session_date).toISOString() : null,
                                 attachment_urls: attachment_urls
                             };
 
@@ -1401,7 +1422,7 @@ const App = () => {
                             if (next_session_date) {
                                 await supabaseClient.from('sessions').insert([{
                                     student_id: Number(selectedStudent.id),
-                                    session_date: next_session_date,
+                                    session_date: new Date(next_session_date).toISOString(),
                                     hourly_rate: Number(formData.hourly_rate),
                                     duration: 60
                                 }]);
@@ -1429,7 +1450,11 @@ const App = () => {
                         students={students}
                         student={selectedStudent}
                         onSave={async (data) => {
-                            const { error } = await supabaseClient.from('sessions').insert([data]);
+                            const formattedData = {
+                                ...data,
+                                session_date: data.session_date ? new Date(data.session_date).toISOString() : null
+                            };
+                            const { error } = await supabaseClient.from('sessions').insert([formattedData]);
                             if (!error) {
                                 fetchData();
                                 if (selectedStudent) {
