@@ -1328,7 +1328,32 @@ const App = () => {
                     <SessionLogForm student={selectedStudent} session={selectedSession} onSave={async (formData, files, sessionId) => {
                         try {
                             const { next_session_date, next_session_focus, ...sessionData } = formData;
-                            const payload = { ...sessionData, student_id: Number(selectedStudent.id) };
+                            let attachment_urls = session?.attachment_urls || [];
+
+                            // Handle File Uploads
+                            if (files && files.length > 0) {
+                                for (const file of files) {
+                                    const fileExt = file.name.split('.').pop();
+                                    const fileName = `${selectedStudent.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                                    const { data, error: uploadError } = await supabaseClient.storage
+                                        .from('session-materials')
+                                        .upload(fileName, file);
+
+                                    if (uploadError) throw uploadError;
+
+                                    const { data: { publicUrl } } = supabaseClient.storage
+                                        .from('session-materials')
+                                        .getPublicUrl(fileName);
+
+                                    attachment_urls.push(publicUrl);
+                                }
+                            }
+
+                            const payload = {
+                                ...sessionData,
+                                student_id: Number(selectedStudent.id),
+                                attachment_urls: attachment_urls
+                            };
 
                             if (sessionId) {
                                 await supabaseClient.from('sessions').update(payload).eq('id', sessionId);
