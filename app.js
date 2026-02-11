@@ -61,7 +61,7 @@ const DateTimeInput = ({ label, name, value, onChange, required, placeholder }) 
 // 4. COMPONENTS
 // ==========================================
 
-const Sidebar = ({ currentView, setView }) => {
+const Sidebar = ({ currentView, setView, onLogout }) => {
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: 'fa-th-large' },
         { id: 'students', label: 'Students', icon: 'fa-users' },
@@ -74,7 +74,7 @@ const Sidebar = ({ currentView, setView }) => {
                 <i className="fas fa-graduation-cap"></i>
                 <span>Apex Manager</span>
             </div>
-            <nav>
+            <nav style={{ flex: 1 }}>
                 {menuItems.map(item => (
                     <div
                         key={item.id}
@@ -86,12 +86,15 @@ const Sidebar = ({ currentView, setView }) => {
                     </div>
                 ))}
             </nav>
-            <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
-                <div className="glass-card" style={{ padding: '1rem', fontSize: '0.8rem' }}>
+            <div className="logout-container">
+                <div className="glass-card" style={{ padding: '1rem', fontSize: '0.8rem', marginBottom: '1rem' }}>
                     <p style={{ marginBottom: '0.5rem' }}>Payment Info</p>
                     <p><strong>Zelle/Venmo:</strong></p>
                     <p style={{ color: 'var(--text-main)' }}>{PAYMENT_PHONE}</p>
                 </div>
+                <button className="btn btn-logout" onClick={onLogout}>
+                    <i className="fas fa-sign-out-alt"></i> Logout
+                </button>
             </div>
         </div>
     );
@@ -219,7 +222,6 @@ const StudentList = ({ students, onSelect, onLogSession }) => (
                     <th>Name</th>
                     <th>Level</th>
                     <th>Next Session</th>
-                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -233,16 +235,6 @@ const StudentList = ({ students, onSelect, onLogSession }) => (
                         </td>
                         <td><span className="badge badge-purple">{student.level}</span></td>
                         <td>{student.next_session ? new Date(student.next_session).toLocaleDateString() : 'Not Scheduled'}</td>
-                        <td>
-                            <div className="flex gap-2">
-                                <button className="btn btn-ghost btn-sm" title="Log Session" onClick={() => onLogSession(student)}>
-                                    <i className="fas fa-calendar-check text-blue-400"></i>
-                                </button>
-                                <button className="btn btn-ghost btn-sm" title="View Profile" onClick={() => onSelect(student)}>
-                                    <i className="fas fa-chevron-right text-muted"></i>
-                                </button>
-                            </div>
-                        </td>
                     </tr>
                 ))}
             </tbody>
@@ -251,107 +243,186 @@ const StudentList = ({ students, onSelect, onLogSession }) => (
 );
 
 const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSession, onBack }) => {
-    const upcomingSessions = sessions.filter(s => new Date(s.session_date) >= new Date().setHours(0, 0, 0, 0)).sort((a, b) => new Date(a.session_date) - new Date(b.session_date));
-    const pastSessions = sessions.filter(s => new Date(s.session_date) < new Date().setHours(0, 0, 0, 0)).sort((a, b) => new Date(b.session_date) - new Date(a.session_date));
+    const now = new Date();
+
+    // Upcoming: Future sessions that haven't been logged yet
+    const upcomingSessions = sessions
+        .filter(s => new Date(s.session_date) >= now && !s.topics_covered)
+        .sort((a, b) => new Date(a.session_date) - new Date(b.session_date));
+
+    // Past: Sessions that occurred in the past OR sessions that are already logged
+    const pastSessions = sessions
+        .filter(s => new Date(s.session_date) < now || s.topics_covered)
+        .sort((a, b) => new Date(b.session_date) - new Date(a.session_date));
 
     return (
-        <div>
-            <div className="flex items-center gap-4 mb-8">
-                <button className="btn btn-ghost btn-sm" onClick={onBack}>
-                    <i className="fas fa-arrow-left"></i>
+        <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                    <button className="btn btn-ghost btn-sm" onClick={onBack}>
+                        <i className="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h2 className="mb-0">{student.name}</h2>
+                        <span className="text-xs text-muted uppercase tracking-widest font-bold">{student.level} • {student.subject}</span>
+                    </div>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => onEdit(student)}>
+                    <i className="fas fa-edit mr-2"></i> Edit Student Details
                 </button>
-                <h2>{student.name}'s Profile</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="glass-card md:col-span-2">
-                    <div className="flex justify-between items-start mb-4">
-                        <h3>Academic Information</h3>
-                        <div className="flex gap-2">
-                            <button className="btn btn-ghost btn-sm" onClick={() => onEdit(student)}>
-                                <i className="fas fa-edit"></i> Edit Info
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                {/* SECTION 1: SCHEDULE (Left/Small) */}
+                <div className="lg:col-span-4">
+                    <div className="glass-card h-full" style={{ borderTop: '4px solid var(--primary)' }}>
+                        <h3 className="flex items-center gap-2 mb-6">
+                            <i className="fas fa-calendar-plus text-primary"></i> 1. Schedule
+                        </h3>
+                        <p className="text-sm text-muted mb-6">Plan your next coaching session for {student.name.split(' ')[0]}.</p>
+
+                        <div className="flex flex-col gap-4">
+                            <button className="btn btn-primary w-full py-4 flex flex-col items-center gap-1" onClick={() => onScheduleSession(student)}>
+                                <span className="text-lg"><i className="fas fa-plus"></i></span>
+                                <span>Schedule Session</span>
                             </button>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label>Level</label>
-                            <p className="text-main" style={{ color: 'var(--text-main)' }}>{student.level}</p>
-                        </div>
-                        <div>
-                            <label>School</label>
-                            <p className="text-main" style={{ color: 'var(--text-main)' }}>{student.school || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <label>Subject/Topic</label>
-                            <p className="text-main" style={{ color: 'var(--text-main)' }}>{student.subject || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <label>Pricing Rate</label>
-                            <p className="text-main" style={{ color: 'var(--text-main)' }}>{formatCurrency(student.pricing || student.pay_rate || 75)}/hr</p>
-                        </div>
-                        <div>
-                            <label>Session Frequency</label>
-                            <p className="text-main" style={{ color: 'var(--text-main)' }}>{student.frequency || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <label>First Session Date</label>
-                            <p className="text-main" style={{ color: 'var(--text-main)' }}>
-                                {student.first_session_date ? new Date(student.first_session_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Not set'}
-                            </p>
-                        </div>
-                        <div>
-                            <label>Parent/Guardian</label>
-                            <p className="text-main" style={{ color: 'var(--text-main)' }}>{student.parent_name || 'N/A'}</p>
-                        </div>
-                        <div>
-                            <label>Parent Contact</label>
-                            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{student.parent_email} | {student.parent_phone}</p>
-                        </div>
-                        {student.questions && (
-                            <div className="md:col-span-2">
-                                <label>Enrollment Questions/Notes</label>
-                                <p className="text-sm italic" style={{ color: 'var(--text-muted)', background: 'var(--glass)', padding: '0.75rem', borderRadius: '8px' }}>
-                                    "{student.questions}"
-                                </p>
+
+                            <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 text-xs text-muted">
+                                <label className="block mb-2 font-bold uppercase tracking-tighter">Current Plan</label>
+                                <p><i className="fas fa-redo-alt mr-2"></i> {student.frequency || 'No recurring set'}</p>
+                                <p className="mt-1"><i className="fas fa-dollar-sign mr-2"></i> {formatCurrency(student.pricing || 75)}/hr</p>
                             </div>
-                        )}
-                        <div className="md:col-span-2">
-                            <label>Current HW / Focus</label>
-                            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                                {student.homework_assigned ? `HW: ${student.homework_assigned}` : 'No homework pending'}
-                                {student.next_session_focus ? ` | Focus: ${student.next_session_focus}` : ''}
-                            </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="glass-card">
-                    <h3>Quick Actions</h3>
-                    <div className="flex flex-col gap-3 mt-4">
-                        <button className="btn btn-primary w-full justify-start" onClick={() => onLogSession(student)}>
-                            <i className="fas fa-plus"></i> Log Completed Session
-                        </button>
-                        <button className="btn btn-ghost w-full justify-start" style={{ border: '1px solid var(--primary)' }} onClick={() => onScheduleSession(student)}>
-                            <i className="fas fa-clock"></i> Schedule New Session
-                        </button>
-                        <a href={`mailto:${student.parent_email}?subject=Session Reminder for ${student.name}&body=Hi,%0D%0A%0D%0AThis is a reminder for our upcoming session for ${student.name}.%0D%0A%0D%0APayment can be made via Zelle/Venmo to ${PAYMENT_PHONE}.%0D%0A%0D%0ASee you then!`} className="btn btn-ghost w-full justify-start">
-                            <i className="fas fa-paper-plane"></i> Send Reminder
-                        </a>
+                {/* SECTION 2: LOG (Right/Large) */}
+                <div className="lg:col-span-8">
+                    <div className="glass-card" style={{ borderTop: '4px solid var(--secondary)' }}>
+                        <h3 className="flex items-center gap-2 mb-6">
+                            <i className="fas fa-file-signature text-secondary"></i> 2. Log & Manage
+                        </h3>
+
+                        {/* UPCOMING SUB-SECTION */}
+                        <div className="mb-10">
+                            <h4 className="text-[10px] uppercase tracking-[0.2em] text-muted mb-6 font-black flex items-center justify-between opacity-60">
+                                Upcoming Appointments
+                                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">{upcomingSessions.length}</span>
+                            </h4>
+                            {upcomingSessions.length > 0 ? (
+                                <div className="flex flex-col gap-4">
+                                    {upcomingSessions.map(s => (
+                                        <button
+                                            key={s.id}
+                                            className="session-card-btn upcoming group"
+                                            onClick={() => onLogSession(s)}
+                                        >
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-5">
+                                                    <div className="icon-box">
+                                                        <i className="fas fa-calendar-star text-lg"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded font-black">SESSION #{s.session_number || '?'}</span>
+                                                            <p className="text-lg font-bold text-main leading-none">
+                                                                {new Date(s.session_date).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
+                                                            </p>
+                                                        </div>
+                                                        <p className="text-sm text-muted font-medium">
+                                                            <i className="far fa-clock mr-2"></i> {new Date(s.session_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {s.duration} min
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-primary opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Open Session</span>
+                                                    <i className="fas fa-arrow-right text-sm"></i>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted text-center py-8 italic bg-slate-800/20 rounded-2xl border border-dashed border-slate-700/50">No upcoming sessions scheduled</p>
+                            )}
+                        </div>
+
+                        {/* PAST / HISTORY SUB-SECTION */}
+                        <div>
+                            <h4 className="text-[10px] uppercase tracking-[0.2em] text-muted mb-6 font-black flex items-center justify-between opacity-60">
+                                Evaluation & History
+                                <span className="bg-slate-800 text-muted px-3 py-1 rounded-full">{pastSessions.length}</span>
+                            </h4>
+                            {pastSessions.length > 0 ? (
+                                <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-3 custom-scrollbar">
+                                    {pastSessions.map(s => {
+                                        const isPending = !s.topics_covered;
+                                        return (
+                                            <button
+                                                key={s.id}
+                                                className={`session-card-btn ${isPending ? 'pending' : 'history'} group`}
+                                                onClick={() => onLogSession(s)}
+                                            >
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex items-center gap-5">
+                                                        <div className="icon-box">
+                                                            <i className={`fas ${isPending ? 'fa-pen-circle' : 'fa-check-double'}`}></i>
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className="text-[10px] bg-slate-700/50 text-muted px-2 py-0.5 rounded font-black">#{s.session_number || '?'}</span>
+                                                                <p className="text-lg font-bold text-main leading-none">
+                                                                    {new Date(s.session_date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-sm text-muted">
+                                                                <i className="far fa-clock mr-2"></i> {new Date(s.session_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {isPending ? (
+                                                            <span className="btn-label">Log Topics Covered</span>
+                                                        ) : (
+                                                            <div className="flex flex-col items-end gap-1">
+                                                                {s.paid ? (
+                                                                    <span className="text-[10px] text-success font-black tracking-tighter"><i className="fas fa-check-circle mr-1"></i> SETTLED</span>
+                                                                ) : (
+                                                                    <span className="text-[10px] text-warning font-black tracking-tighter">UNPAID</span>
+                                                                )}
+                                                                <span className="text-[10px] text-muted opacity-40 group-hover:opacity-100 transition-opacity uppercase font-bold">Edit Details</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {isPending ? (
+                                                    <div className="p-3 rounded-xl bg-warning/5 border border-warning/10 border-dashed">
+                                                        <p className="text-sm text-warning font-medium italic mb-1">Pending Documentation</p>
+                                                        <p className="text-xs text-warning/60">This session has passed. Please record what was covered and any homework assigned.</p>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm text-main/80 line-clamp-2 leading-relaxed italic">
+                                                        "{s.topics_covered}"
+                                                    </p>
+                                                )}
+
+                                                <div className="session-footer">
+                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest"><i className="fas fa-hourglass-half mr-1.5 opacity-40"></i> {s.duration} MINS</span>
+                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest"><i className="fas fa-wallet mr-1.5 opacity-40"></i> {formatCurrency(calculateSessionPayout(s))}</span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted text-center py-10 italic">No historical data available</p>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="flex flex-col gap-8">
-                <section>
-                    <h3 className="mb-4 text-blue-400"><i className="fas fa-calendar-alt mr-2"></i>Upcoming Sessions</h3>
-                    <SessionHistory sessions={upcomingSessions} onAction={onLogSession} />
-                </section>
-
-                <section>
-                    <h3 className="mb-4 text-gray-400"><i className="fas fa-history mr-2"></i>Past History</h3>
-                    <SessionHistory sessions={pastSessions} onAction={onLogSession} />
-                </section>
             </div>
         </div>
     );
@@ -696,34 +767,42 @@ const SessionLogForm = ({ student, session, onSave, onCancel }) => {
                         onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
                         style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                     />
-                    <label htmlFor="paid-toggle" style={{ margin: 0, cursor: 'pointer', color: formData.paid ? 'var(--success)' : 'var(--secondary)' }}>
-                        <strong>{formData.paid ? 'Session Paid' : 'Pending Payment'}</strong>
-                        <span className="block text-xs opacity-70">Total Earnings: {formatCurrency(calculateSessionPayout(formData))}</span>
+                    <label htmlFor="paid-toggle" style={{ fontWeight: 600, cursor: 'pointer', margin: 0 }}>
+                        {formData.paid ? 'Payment Received' : 'Mark as Paid'}
                     </label>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                        <label>Topics Covered</label>
-                        <textarea rows="3" value={formData.topics_covered} onChange={(e) => setFormData({ ...formData, topics_covered: e.target.value })} placeholder="What was discussed?"></textarea>
-                    </div>
-                    <div>
-                        <label>Homework Assigned (Public)</label>
-                        <textarea rows="3" value={formData.homework_assigned} onChange={(e) => setFormData({ ...formData, homework_assigned: e.target.value })} placeholder="Exercises..."></textarea>
-                    </div>
+                <div className="form-section">
+                    <label>Topics Covered</label>
+                    <textarea
+                        value={formData.topics_covered}
+                        onChange={(e) => setFormData({ ...formData, topics_covered: e.target.value })}
+                        placeholder="What did you work on today?"
+                        rows={3}
+                    />
                 </div>
 
-                <div className="p-4 glass-card border-primary" style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                    <h4 className="mb-3 text-sm text-primary flex items-center gap-2">
-                        <i className="fas fa-forward"></i> Next Session Planning
+                <div className="form-section">
+                    <label>Homework Assigned</label>
+                    <textarea
+                        value={formData.homework_assigned}
+                        onChange={(e) => setFormData({ ...formData, homework_assigned: e.target.value })}
+                        placeholder="What should they finish for next time?"
+                        rows={2}
+                    />
+                </div>
+
+                <div className="glass-card" style={{ background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                    <h4 className="flex items-center gap-2 mb-4 text-primary">
+                        <i className="fas fa-calendar-plus"></i> Schedule Next Session (Optional)
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <DateTimeInput
-                            label="Target Next Date"
+                            label="Next Session Date"
                             value={formData.next_session_date}
                             onChange={(e) => setFormData({ ...formData, next_session_date: e.target.value })}
                         />
-                        <div className="input-wrapper">
+                        <div>
                             <label>Next Session Focus</label>
                             <input
                                 value={formData.next_session_focus}
@@ -891,7 +970,7 @@ const ScheduleSessionForm = ({ students, student, onSave, onCancel }) => {
     );
 };
 
-const CalendarView = ({ allSessions, onSelectEvent }) => {
+const CalendarView = ({ allSessions, students, onSelectEvent }) => {
     const [viewDate, setViewDate] = useState(new Date());
 
     const startOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
@@ -940,14 +1019,30 @@ const CalendarView = ({ allSessions, onSelectEvent }) => {
                     return (
                         <div key={i} className={`calendar-day ${d.month !== 'current' ? 'other-month' : ''} ${isToday(d.date) ? 'today' : ''}`}>
                             <span className="day-number">{d.day}</span>
-                            {daySessions.map(s => (
-                                <div key={s.id} className="calendar-event" onClick={() => onSelectEvent(s.student_id)}>
-                                    <div className="flex justify-between">
-                                        <span style={{ fontWeight: 600 }}>{s.paid ? '$\u2713' : '$?'}</span>
-                                        <span style={{ opacity: 0.8 }}>{new Date(s.session_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            {daySessions.map(s => {
+                                const student = students.find(std => std.id === s.student_id);
+                                return (
+                                    <div
+                                        key={s.id}
+                                        className="calendar-event"
+                                        onClick={() => onSelectEvent(s.student_id)}
+                                        style={{ height: 'auto', padding: '6px' }}
+                                    >
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex justify-between items-center bg-white/10 rounded px-1.5 py-0.5">
+                                                <span style={{ fontWeight: 800, fontSize: '0.65rem' }} className="truncate max-w-[65px]">
+                                                    {student ? student.name.split(' ')[0] : 'Unknown'}
+                                                </span>
+                                                <span style={{ fontWeight: 800, fontSize: '0.65rem', color: s.paid ? '#4ade80' : '#f87171' }}>{s.paid ? '\u2713' : '?'}</span>
+                                            </div>
+                                            <span style={{ opacity: 0.8, fontSize: '0.6rem' }} className="font-bold">
+                                                <i className="far fa-clock mr-1 text-[8px]"></i>
+                                                {new Date(s.session_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     );
                 })}
@@ -957,10 +1052,75 @@ const CalendarView = ({ allSessions, onSelectEvent }) => {
 };
 
 // ==========================================
-// 5. MAIN APPLICATION
+// 5. AUTHENTICATION COMPONENTS
+// ==========================================
+
+const Login = ({ onLogin }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) setError(error.message);
+        setLoading(false);
+    };
+
+    return (
+        <div className="auth-container">
+            <div className="auth-card">
+                <div className="auth-logo">
+                    <i className="fas fa-graduation-cap"></i>
+                </div>
+                <h2>Apex Management</h2>
+                <p>Sign in to access student analytics and session logs.</p>
+                <form className="auth-form" onSubmit={handleSubmit}>
+                    <div className="input-wrapper">
+                        <label>Email Address</label>
+                        <input
+                            type="email"
+                            placeholder="dr.sahota@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="input-wrapper">
+                        <label>Security Key</label>
+                        <input
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+                    {error && <p style={{ color: 'var(--secondary)', fontSize: '0.8rem', margin: '0.5rem 0' }}>{error}</p>}
+                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                        {loading ? 'Authenticating...' : 'Enter Dashboard'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// ==========================================
+// 6. MAIN APPLICATION
 // ==========================================
 
 const App = () => {
+    const now = useMemo(() => new Date(), []);
+    const past30 = useMemo(() => new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000)), [now]);
+    const next30 = useMemo(() => new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)), [now]);
+    const todayStart = useMemo(() => new Date(now).setHours(0, 0, 0, 0), [now]);
+
+    const [user, setUser] = useState(null);
+    const [appLoading, setAppLoading] = useState(true);
     const [students, setStudents] = useState([]);
     const [allSessions, setAllSessions] = useState([]);
     const [view, setView] = useState('dashboard');
@@ -971,8 +1131,24 @@ const App = () => {
     const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
-        fetchData();
+        // Check active sessions and subscribe to auth changes
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+            setAppLoading(false);
+        });
+
+        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
+
+    useEffect(() => {
+        if (user) {
+            fetchData();
+        }
+    }, [user]);
 
     const fetchData = async () => {
         setStatus('loading');
@@ -994,6 +1170,33 @@ const App = () => {
         }
     };
 
+    const handleLogout = async () => {
+        await supabaseClient.auth.signOut();
+    };
+
+    const studentsWithNextSess = useMemo(() => students.map(student => {
+        const next = allSessions
+            .filter(s => s.student_id === student.id && new Date(s.session_date) >= now)
+            .sort((a, b) => new Date(a.session_date) - new Date(b.session_date))[0];
+        return { ...student, next_session: next?.session_date };
+    }), [students, allSessions, now]);
+
+    // Financial calculations
+    const paidLast30 = useMemo(() => allSessions.filter(s => s.paid && new Date(s.session_date) >= past30 && new Date(s.session_date) <= now), [allSessions, past30, now]);
+    const expectedNext30 = useMemo(() => allSessions.filter(s => new Date(s.session_date) > now && new Date(s.session_date) <= next30), [allSessions, now, next30]);
+
+    if (appLoading) {
+        return (
+            <div className="auth-container">
+                <i className="fas fa-spinner fa-spin fa-3x text-primary"></i>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return <Login />;
+    }
+
     const handleStudentClick = (studentId) => {
         const student = students.find(s => s.id === (typeof studentId === 'object' ? studentId.id : studentId));
         if (!student) return;
@@ -1014,24 +1217,9 @@ const App = () => {
         setView('log-session');
     };
 
-    // Financial calculations
-    const now = new Date();
-    const past30 = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-    const next30 = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
-
-    const paidLast30 = allSessions.filter(s => s.paid && new Date(s.session_date) >= past30 && new Date(s.session_date) <= now);
-    const expectedNext30 = allSessions.filter(s => new Date(s.session_date) > now && new Date(s.session_date) <= next30);
-
-    const studentsWithNextSess = useMemo(() => students.map(student => {
-        const next = allSessions
-            .filter(s => s.student_id === student.id && new Date(s.session_date) >= now.setHours(0, 0, 0, 0))
-            .sort((a, b) => new Date(a.session_date) - new Date(b.session_date))[0];
-        return { ...student, next_session: next?.session_date };
-    }), [students, allSessions]);
-
     return (
         <React.Fragment>
-            <Sidebar currentView={view} setView={setView} />
+            <Sidebar currentView={view} setView={setView} onLogout={handleLogout} />
             <main className="main-content">
                 {view === 'dashboard' && (
                     <React.Fragment>
@@ -1042,33 +1230,46 @@ const App = () => {
                             <PayoutCloud sessions={expectedNext30} title="Projected Revenue" type="next" />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <StatCard title="Total Students" value={students.length} icon="fa-users" color="var(--primary)" onClick={() => setView('students')} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             <StatCard
-                                title="Pending Sessions"
-                                value={allSessions.filter(s => !s.paid && new Date(s.session_date) < now).length}
-                                icon="fa-money-bill-wave"
-                                color="var(--secondary)"
-                                subtitle="Needs logging/payment"
+                                title="Total Revenue"
+                                value={formatCurrency(allSessions.filter(s => s.paid).reduce((a, b) => a + calculateSessionPayout(b), 0))}
+                                icon="fa-wallet"
+                                color="var(--success)"
+                                subtitle="All-time Paid"
                             />
                             <StatCard
-                                title="Monthly Goal"
-                                value={formatCurrency(2500)}
-                                icon="fa-chart-line"
-                                color="var(--success)"
-                                subtitle={`${Math.round((paidLast30.reduce((a, b) => a + calculateSessionPayout(b), 0) / 2500) * 100)}% Reached`}
+                                title="Total Students"
+                                value={students.length}
+                                icon="fa-users"
+                                color="var(--primary)"
+                                onClick={() => setView('students')}
+                                subtitle="Active Roster"
                             />
                         </div>
 
                         <div className="flex justify-between items-center mb-6">
-                            <h3>Upcoming Pipeline</h3>
+                            <h3 className="text-lg font-bold">Upcoming Pipeline</h3>
                             <button className="btn btn-primary btn-sm" onClick={() => setView('schedule-session')}>+ Schedule</button>
                         </div>
-                        <StudentList
-                            students={studentsWithNextSess.filter(s => s.next_session).sort((a, b) => new Date(a.next_session) - new Date(b.next_session)).slice(0, 5)}
-                            onSelect={handleStudentClick}
-                            onLogSession={handleLogSession}
-                        />
+                        <div className="flex flex-col gap-2 mb-10">
+                            {allSessions
+                                .filter(s => new Date(s.session_date) >= now)
+                                .sort((a, b) => new Date(a.session_date) - new Date(b.session_date))
+                                .slice(0, 10)
+                                .map(session => (
+                                    <SessionItem
+                                        key={session.id}
+                                        session={session}
+                                        students={students}
+                                        onAction={(type, target) => {
+                                            if (type === 'view') handleStudentClick(target.id);
+                                            if (type === 'log') handleLogSession(session);
+                                        }}
+                                    />
+                                ))
+                            }
+                        </div>
                     </React.Fragment>
                 )}
 
@@ -1093,7 +1294,7 @@ const App = () => {
                 {view === 'calendar' && (
                     <React.Fragment>
                         <Header title="Academic Calendar" status={status} />
-                        <CalendarView allSessions={allSessions} onSelectEvent={handleStudentClick} />
+                        <CalendarView allSessions={allSessions} students={students} onSelectEvent={handleStudentClick} />
                     </React.Fragment>
                 )}
 
@@ -1117,7 +1318,7 @@ const App = () => {
                     <SessionLogForm student={selectedStudent} session={selectedSession} onSave={async (formData, files, sessionId) => {
                         try {
                             const { next_session_date, next_session_focus, ...sessionData } = formData;
-                            const payload = { ...sessionData, student_id: selectedStudent.id };
+                            const payload = { ...sessionData, student_id: Number(selectedStudent.id) };
 
                             if (sessionId) {
                                 await supabaseClient.from('sessions').update(payload).eq('id', sessionId);
@@ -1127,9 +1328,9 @@ const App = () => {
 
                             if (next_session_date) {
                                 await supabaseClient.from('sessions').insert([{
-                                    student_id: selectedStudent.id,
+                                    student_id: Number(selectedStudent.id),
                                     session_date: next_session_date,
-                                    hourly_rate: formData.hourly_rate,
+                                    hourly_rate: Number(formData.hourly_rate),
                                     duration: 60
                                 }]);
                             }
@@ -1140,12 +1341,15 @@ const App = () => {
                             }).eq('id', selectedStudent.id);
 
                             fetchData();
-                            setView('dashboard');
+                            // Redirect back to profile to see the new log
+                            const updatedSessions = await supabaseClient.from('sessions').select('*').eq('student_id', selectedStudent.id).order('session_date', { ascending: false });
+                            setSelectedStudentSessions(updatedSessions.data || []);
+                            setView('student-profile');
                             setSelectedSession(null);
                         } catch (err) {
                             alert(err.message);
                         }
-                    }} onCancel={() => { setView('dashboard'); setSelectedSession(null); }} />
+                    }} onCancel={() => { setView('student-profile'); setSelectedSession(null); }} />
                 )}
 
                 {view === 'schedule-session' && (
@@ -1154,10 +1358,19 @@ const App = () => {
                         student={selectedStudent}
                         onSave={async (data) => {
                             const { error } = await supabaseClient.from('sessions').insert([data]);
-                            if (!error) { fetchData(); setView('dashboard'); }
+                            if (!error) {
+                                fetchData();
+                                if (selectedStudent) {
+                                    const updatedSessions = await supabaseClient.from('sessions').select('*').eq('student_id', selectedStudent.id).order('session_date', { ascending: false });
+                                    setSelectedStudentSessions(updatedSessions.data || []);
+                                    setView('student-profile');
+                                } else {
+                                    setView('dashboard');
+                                }
+                            }
                             else alert(error.message);
                         }}
-                        onCancel={() => setView('dashboard')}
+                        onCancel={() => selectedStudent ? setView('student-profile') : setView('dashboard')}
                     />
                 )}
             </main>
