@@ -45,6 +45,7 @@ const DateTimeInput = ({ label, name, value, onChange, required, placeholder }) 
                     onChange={onChange}
                     required={required}
                     placeholder={placeholder}
+                    step="1800"
                 />
                 <button
                     type="button"
