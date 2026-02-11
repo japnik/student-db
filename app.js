@@ -481,15 +481,30 @@ const SessionModal = ({ session, onClose }) => {
                     </div>
 
                     {session.attachment_urls && session.attachment_urls.length > 0 && (
-                        <div className="session-detail-item">
-                            <label>Attachments ({session.attachment_urls.length})</label>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                                {session.attachment_urls.map((url, idx) => (
-                                    <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="attachment-chip">
-                                        <i className="fas fa-file-pdf text-red-400"></i>
-                                        <span>Document {idx + 1}</span>
-                                    </a>
-                                ))}
+                        <div className="mt-8">
+                            <label className="text-[10px] uppercase tracking-widest text-muted font-black mb-4 block opacity-50">Lesson Materials ({session.attachment_urls.length})</label>
+                            <div className="flex flex-wrap gap-2">
+                                {session.attachment_urls.map((url, idx) => {
+                                    const decodedUrl = decodeURIComponent(url);
+                                    const parts = decodedUrl.split('/');
+                                    const fullFileName = parts[parts.length - 1];
+                                    const prettyName = fullFileName.replace(/^\d+-/, '');
+                                    const ext = prettyName.split('.').pop().toLowerCase();
+
+                                    let icon = "fa-file-alt";
+                                    let iconColor = "text-muted";
+                                    if (ext === 'pdf') { icon = "fa-file-pdf"; iconColor = "text-red-400"; }
+                                    else if (['doc', 'docx'].includes(ext)) { icon = "fa-file-word"; iconColor = "text-blue-400"; }
+                                    else if (['xls', 'xlsx'].includes(ext)) { icon = "fa-file-excel"; iconColor = "text-green-400"; }
+                                    else if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) { icon = "fa-file-image"; iconColor = "text-purple-400"; }
+
+                                    return (
+                                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="attachment-chip hover:bg-white/10 transition-colors">
+                                            <i className={`fas ${icon} ${iconColor}`}></i>
+                                            <span className="truncate max-w-[200px]">{prettyName}</span>
+                                        </a>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -820,12 +835,29 @@ const SessionLogForm = ({ student, session, onSave, onCancel }) => {
                     <div className="flex flex-col gap-3">
                         {session?.attachment_urls && session.attachment_urls.length > 0 && (
                             <div className="flex flex-wrap gap-2 p-3 bg-white/5 rounded-xl border border-white/10">
-                                {session.attachment_urls.map((url, idx) => (
-                                    <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="attachment-chip hover:bg-white/10 transition-colors">
-                                        <i className="fas fa-file-pdf text-red-400"></i>
-                                        <span>Existing Document {idx + 1}</span>
-                                    </a>
-                                ))}
+                                {session.attachment_urls.map((url, idx) => {
+                                    const decodedUrl = decodeURIComponent(url);
+                                    const parts = decodedUrl.split('/');
+                                    const fullFileName = parts[parts.length - 1];
+                                    // Remove the timestamp prefix (e.g., "1770669956334-")
+                                    const prettyName = fullFileName.replace(/^\d+-/, '');
+                                    const ext = prettyName.split('.').pop().toLowerCase();
+
+                                    let icon = "fa-file-alt";
+                                    let iconColor = "text-muted";
+
+                                    if (ext === 'pdf') { icon = "fa-file-pdf"; iconColor = "text-red-400"; }
+                                    else if (['doc', 'docx'].includes(ext)) { icon = "fa-file-word"; iconColor = "text-blue-400"; }
+                                    else if (['xls', 'xlsx'].includes(ext)) { icon = "fa-file-excel"; iconColor = "text-green-400"; }
+                                    else if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) { icon = "fa-file-image"; iconColor = "text-purple-400"; }
+
+                                    return (
+                                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="attachment-chip hover:bg-white/10 transition-colors">
+                                            <i className={`fas ${icon} ${iconColor}`}></i>
+                                            <span className="truncate max-w-[200px]">{prettyName}</span>
+                                        </a>
+                                    );
+                                })}
                             </div>
                         )}
                         <input
@@ -1333,8 +1365,9 @@ const App = () => {
                             // Handle File Uploads
                             if (files && files.length > 0) {
                                 for (const file of files) {
-                                    const fileExt = file.name.split('.').pop();
-                                    const fileName = `${selectedStudent.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                                    // Use original filename but prepend timestamp for uniqueness
+                                    const safeName = file.name.replace(/[^\w.-]/g, '_');
+                                    const fileName = `${selectedStudent.id}/${Date.now()}-${safeName}`;
                                     const { data, error: uploadError } = await supabaseClient.storage
                                         .from('attachments')
                                         .upload(fileName, file);
