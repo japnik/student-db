@@ -96,7 +96,7 @@ const DateTimeInput = ({ label, value, onChange, required }) => {
 // 4. COMPONENTS
 // ==========================================
 
-const Sidebar = ({ currentView, setView, onLogout }) => {
+const Sidebar = ({ currentView, setView, onLogout, isMaster }) => {
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: 'fa-th-large' },
         { id: 'students', label: 'Students', icon: 'fa-users' },
@@ -122,11 +122,13 @@ const Sidebar = ({ currentView, setView, onLogout }) => {
                 ))}
             </nav>
             <div className="logout-container">
-                <div className="glass-card" style={{ padding: '1rem', fontSize: '0.8rem', marginBottom: '1rem' }}>
-                    <p style={{ marginBottom: '0.5rem' }}>Payment Info</p>
-                    <p><strong>Zelle/Venmo:</strong></p>
-                    <p style={{ color: 'var(--text-main)' }}>{PAYMENT_PHONE}</p>
-                </div>
+                {isMaster && (
+                    <div className="glass-card" style={{ padding: '1rem', fontSize: '0.8rem', marginBottom: '1rem' }}>
+                        <p style={{ marginBottom: '0.5rem' }}>Payment Info</p>
+                        <p><strong>Zelle/Venmo:</strong></p>
+                        <p style={{ color: 'var(--text-main)' }}>{PAYMENT_PHONE}</p>
+                    </div>
+                )}
                 <button className="btn btn-logout" onClick={onLogout}>
                     <i className="fas fa-sign-out-alt"></i> Logout
                 </button>
@@ -277,7 +279,7 @@ const StudentList = ({ students, onSelect, onLogSession }) => (
     </div>
 );
 
-const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSession, onBack }) => {
+const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSession, onBack, isMaster }) => {
     const now = new Date();
 
     // Upcoming: Future sessions that haven't been logged yet
@@ -326,7 +328,9 @@ const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSes
                             <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 text-xs text-muted">
                                 <label className="block mb-2 font-bold uppercase tracking-tighter">Current Plan</label>
                                 <p><i className="fas fa-redo-alt mr-2"></i> {student.frequency || 'No recurring set'}</p>
-                                <p className="mt-1"><i className="fas fa-dollar-sign mr-2"></i> {formatCurrency(student.pricing || 75)}/hr</p>
+                                {isMaster && (
+                                    <p className="mt-1"><i className="fas fa-dollar-sign mr-2"></i> {formatCurrency(student.pricing || 75)}/hr</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -421,10 +425,12 @@ const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSes
                                                             <span className="btn-label">Log Topics Covered</span>
                                                         ) : (
                                                             <div className="flex flex-col items-end gap-1">
-                                                                {s.paid ? (
-                                                                    <span className="text-[10px] text-success font-black tracking-tighter"><i className="fas fa-check-circle mr-1"></i> SETTLED</span>
-                                                                ) : (
-                                                                    <span className="text-[10px] text-warning font-black tracking-tighter">UNPAID</span>
+                                                                {isMaster && (
+                                                                    s.paid ? (
+                                                                        <span className="text-[10px] text-success font-black tracking-tighter"><i className="fas fa-check-circle mr-1"></i> SETTLED</span>
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-warning font-black tracking-tighter">UNPAID</span>
+                                                                    )
                                                                 )}
                                                                 <span className="text-[10px] text-muted opacity-40 group-hover:opacity-100 transition-opacity uppercase font-bold">Edit Details</span>
                                                             </div>
@@ -445,7 +451,9 @@ const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSes
 
                                                 <div className="session-footer">
                                                     <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest"><i className="fas fa-hourglass-half mr-1.5 opacity-40"></i> {s.duration} MINS</span>
-                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest"><i className="fas fa-wallet mr-1.5 opacity-40"></i> {formatCurrency(calculateSessionPayout(s))}</span>
+                                                    {isMaster && (
+                                                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest"><i className="fas fa-wallet mr-1.5 opacity-40"></i> {formatCurrency(calculateSessionPayout(s))}</span>
+                                                    )}
                                                 </div>
                                             </button>
                                         );
@@ -463,7 +471,7 @@ const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSes
     );
 };
 
-const SessionModal = ({ session, onClose }) => {
+const SessionModal = ({ session, onClose, isMaster }) => {
     if (!session) return null;
 
     return (
@@ -490,23 +498,27 @@ const SessionModal = ({ session, onClose }) => {
                             <p className="text-sm italic mt-1" style={{ color: 'var(--text-muted)' }}>{session.notes || 'No notes'}</p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${session.paid ? 'bg-success/20 text-success border-success/30' : 'bg-secondary/20 text-secondary border-secondary/30'} border`}>
-                                {session.paid ? 'PAID' : 'PENDING'}
-                            </span>
+                            {isMaster && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${session.paid ? 'bg-success/20 text-success border-success/30' : 'bg-secondary/20 text-secondary border-secondary/30'} border`}>
+                                    {session.paid ? 'PAID' : 'PENDING'}
+                                </span>
+                            )}
                             <button className="btn btn-ghost btn-xs" onClick={() => onLogSession(session)}><i className="fas fa-edit"></i></button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4" style={{ background: 'var(--glass)', padding: '1rem', borderRadius: '12px' }}>
-                        <div className="session-detail-item">
-                            <label>Rate</label>
-                            <p className="font-bold">{formatCurrency(session.hourly_rate)}/hr</p>
+                    {isMaster && (
+                        <div className="grid grid-cols-2 gap-4" style={{ background: 'var(--glass)', padding: '1rem', borderRadius: '12px' }}>
+                            <div className="session-detail-item">
+                                <label>Rate</label>
+                                <p className="font-bold">{formatCurrency(session.hourly_rate)}/hr</p>
+                            </div>
+                            <div className="session-detail-item">
+                                <label>Total Payout</label>
+                                <p className="font-bold text-green-400">{formatCurrency(calculateSessionPayout(session))}</p>
+                            </div>
                         </div>
-                        <div className="session-detail-item">
-                            <label>Total Payout</label>
-                            <p className="font-bold text-green-400">{formatCurrency(calculateSessionPayout(session))}</p>
-                        </div>
-                    </div>
+                    )}
 
                     <div className="session-detail-item">
                         <label>Topics Covered</label>
@@ -593,12 +605,12 @@ const SessionHistory = ({ sessions, onAction }) => {
                     </div>
                 ))
             )}
-            {selectedSession && <SessionModal session={selectedSession} onClose={() => setSelectedSession(null)} />}
+            {selectedSession && <SessionModal session={selectedSession} onClose={() => setSelectedSession(null)} isMaster={isMaster} />}
         </div>
     );
 };
 
-const StudentForm = ({ onSave, onCancel, initialData }) => {
+const StudentForm = ({ onSave, onCancel, initialData, isMaster }) => {
     const [formData, setFormData] = useState(initialData || {
         name: '', school: '', level: 'AP',
         subject: '', frequency: '', questions: '',
@@ -659,13 +671,15 @@ const StudentForm = ({ onSave, onCancel, initialData }) => {
                             <label>Session Frequency</label>
                             <input name="frequency" value={formData.frequency || ''} onChange={handleChange} placeholder="e.g. 2x / Week" />
                         </div>
-                        <div className="input-wrapper">
-                            <label>Hourly Rate</label>
-                            <select name="pricing" value={formData.pricing} onChange={handleChange} style={{ borderColor: 'var(--success)' }}>
-                                <option value={75}>Elite - $75/hr</option>
-                                <option value={100}>Premium - $100/hr</option>
-                            </select>
-                        </div>
+                        {isMaster && (
+                            <div className="input-wrapper">
+                                <label>Hourly Rate</label>
+                                <select name="pricing" value={formData.pricing} onChange={handleChange} style={{ borderColor: 'var(--success)' }}>
+                                    <option value={75}>Elite - $75/hr</option>
+                                    <option value={100}>Premium - $100/hr</option>
+                                </select>
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -719,7 +733,7 @@ const StudentForm = ({ onSave, onCancel, initialData }) => {
     );
 };
 
-const SessionLogForm = ({ student, session, onSave, onCancel }) => {
+const SessionLogForm = ({ student, session, onSave, onCancel, isMaster }) => {
     const [nextSessionNum, setNextSessionNum] = useState(session?.session_number || null);
     const [formData, setFormData] = useState({
         session_date: session ? toLocalISO(session.session_date) : toLocalISO(new Date()),
@@ -799,28 +813,32 @@ const SessionLogForm = ({ student, session, onSave, onCancel }) => {
                             <option value={90}>90 min</option>
                         </select>
                     </div>
-                    <div>
-                        <label>Hourly Rate</label>
-                        <select value={formData.hourly_rate} onChange={(e) => setFormData({ ...formData, hourly_rate: Number(e.target.value) })}>
-                            <option value={75}>$75/hr</option>
-                            <option value={100}>$100/hr</option>
-                        </select>
+                    {isMaster && (
+                        <div>
+                            <label>Hourly Rate</label>
+                            <select value={formData.hourly_rate} onChange={(e) => setFormData({ ...formData, hourly_rate: Number(e.target.value) })}>
+                                <option value={75}>$75/hr</option>
+                                <option value={100}>$100/hr</option>
+                            </select>
+                        </div>
+                    )}
+                </div>
+
+
+                {isMaster && (
+                    <div className="flex items-center gap-3 p-3 glass-card" style={{ background: formData.paid ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.05)' }}>
+                        <input
+                            type="checkbox"
+                            id="paid-toggle"
+                            checked={formData.paid}
+                            onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
+                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                        />
+                        <label htmlFor="paid-toggle" style={{ fontWeight: 600, cursor: 'pointer', margin: 0 }}>
+                            {formData.paid ? 'Payment Received' : 'Mark as Paid'}
+                        </label>
                     </div>
-                </div>
-
-
-                <div className="flex items-center gap-3 p-3 glass-card" style={{ background: formData.paid ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.05)' }}>
-                    <input
-                        type="checkbox"
-                        id="paid-toggle"
-                        checked={formData.paid}
-                        onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
-                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                    />
-                    <label htmlFor="paid-toggle" style={{ fontWeight: 600, cursor: 'pointer', margin: 0 }}>
-                        {formData.paid ? 'Payment Received' : 'Mark as Paid'}
-                    </label>
-                </div>
+                )}
 
                 <div className="form-section">
                     <label>Topics Covered</label>
@@ -924,7 +942,7 @@ const SessionLogForm = ({ student, session, onSave, onCancel }) => {
     );
 };
 
-const ScheduleSessionForm = ({ students, student, onSave, onCancel }) => {
+const ScheduleSessionForm = ({ students, student, onSave, onCancel, isMaster }) => {
     const [nextSessionNum, setNextSessionNum] = useState(null);
     const initialStudentId = student ? student.id : (students[0]?.id || '');
 
@@ -1027,13 +1045,15 @@ const ScheduleSessionForm = ({ students, student, onSave, onCancel }) => {
                                     <option value={90}>90 min</option>
                                 </select>
                             </div>
-                            <div className="input-wrapper">
-                                <label>Hourly Rate</label>
-                                <select value={formData.hourly_rate} onChange={(e) => setFormData({ ...formData, hourly_rate: Number(e.target.value) })}>
-                                    <option value={75}>$75/hr</option>
-                                    <option value={100}>$100/hr</option>
-                                </select>
-                            </div>
+                            {isMaster && (
+                                <div className="input-wrapper">
+                                    <label>Hourly Rate</label>
+                                    <select value={formData.hourly_rate} onChange={(e) => setFormData({ ...formData, hourly_rate: Number(e.target.value) })}>
+                                        <option value={75}>$75/hr</option>
+                                        <option value={100}>$100/hr</option>
+                                    </select>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1047,7 +1067,7 @@ const ScheduleSessionForm = ({ students, student, onSave, onCancel }) => {
     );
 };
 
-const CalendarView = ({ allSessions, students, onSelectEvent }) => {
+const CalendarView = ({ allSessions, students, onSelectEvent, isMaster }) => {
     const [viewDate, setViewDate] = useState(new Date());
 
     const startOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
@@ -1113,7 +1133,9 @@ const CalendarView = ({ allSessions, students, onSelectEvent }) => {
                                                 <span style={{ fontWeight: 800, fontSize: '0.65rem' }} className="truncate max-w-[65px]">
                                                     {student ? student.name.split(' ')[0] : 'Unknown'}
                                                 </span>
-                                                <span style={{ fontWeight: 800, fontSize: '0.65rem', color: s.paid ? '#4ade80' : '#f87171' }}>{s.paid ? '\u2713' : '?'}</span>
+                                                {isMaster && (
+                                                    <span style={{ fontWeight: 800, fontSize: '0.65rem', color: s.paid ? '#4ade80' : '#f87171' }}>{s.paid ? '\u2713' : '?'}</span>
+                                                )}
                                             </div>
                                             <span style={{ opacity: 0.8, fontSize: '0.6rem' }} className="font-bold">
                                                 <i className="far fa-clock mr-1 text-[8px]"></i>
@@ -1200,6 +1222,8 @@ const App = () => {
     const todayStart = useMemo(() => new Date(now).setHours(0, 0, 0, 0), [now]);
 
     const [user, setUser] = useState(null);
+    const [userRole, setUserRole] = useState(null); // 'master' or 'assistant'
+    const isMaster = userRole === 'master';
     const [appLoading, setAppLoading] = useState(true);
     const [students, setStudents] = useState([]);
     const [allSessions, setAllSessions] = useState([]);
@@ -1226,9 +1250,37 @@ const App = () => {
 
     useEffect(() => {
         if (user) {
+            checkUserRole();
             fetchData();
         }
     }, [user]);
+
+    const checkUserRole = async () => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', user.id)
+                .single();
+
+            if (data) {
+                setUserRole(data.role);
+            } else {
+                // Check if any roles exist. If not, make first user master.
+                const { count } = await supabaseClient.from('user_roles').select('*', { count: 'exact', head: true });
+                if (count === 0) {
+                    await supabaseClient.from('user_roles').insert([{ user_id: user.id, role: 'master' }]);
+                    setUserRole('master');
+                } else {
+                    // Default to assistant for safety
+                    setUserRole('assistant');
+                }
+            }
+        } catch (err) {
+            console.error("Role check failed:", err);
+            setUserRole('assistant'); // Safe fallback
+        }
+    };
 
     const fetchData = async () => {
         setStatus('loading');
@@ -1299,25 +1351,29 @@ const App = () => {
 
     return (
         <React.Fragment>
-            <Sidebar currentView={view} setView={setView} onLogout={handleLogout} />
+            <Sidebar currentView={view} setView={setView} onLogout={handleLogout} isMaster={isMaster} />
             <main className="main-content">
                 {view === 'dashboard' && (
                     <React.Fragment>
-                        <Header title="Dr Sahota Chem Overview" status={status} errorMessage={errorMessage} />
+                        <Header title={`Dr Sahota Chem Overview${!isMaster ? ' (Assistant)' : ''}`} status={status} errorMessage={errorMessage} />
+
+                        {isMaster && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <PayoutCloud sessions={paidLast30} title="Revenue (Paid)" type="past" />
+                                <PayoutCloud sessions={expectedNext30} title="Projected Revenue" type="next" />
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                            <PayoutCloud sessions={paidLast30} title="Revenue (Paid)" type="past" />
-                            <PayoutCloud sessions={expectedNext30} title="Projected Revenue" type="next" />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                            <StatCard
-                                title="Total Revenue"
-                                value={formatCurrency(allSessions.filter(s => s.paid).reduce((a, b) => a + calculateSessionPayout(b), 0))}
-                                icon="fa-wallet"
-                                color="var(--success)"
-                                subtitle="All-time Paid"
-                            />
+                            {isMaster && (
+                                <StatCard
+                                    title="Total Revenue"
+                                    value={formatCurrency(allSessions.filter(s => s.paid).reduce((a, b) => a + calculateSessionPayout(b), 0))}
+                                    icon="fa-wallet"
+                                    color="var(--success)"
+                                    subtitle="All-time Paid"
+                                />
+                            )}
                             <StatCard
                                 title="Total Students"
                                 value={students.length}
@@ -1346,6 +1402,7 @@ const App = () => {
                                             if (type === 'view') handleStudentClick(target.id);
                                             if (type === 'log') handleLogSession(session);
                                         }}
+                                        isMaster={isMaster}
                                     />
                                 ))
                             }
@@ -1356,7 +1413,7 @@ const App = () => {
                 {view === 'students' && (
                     <React.Fragment>
                         <Header title="Student Directory" status={status} onAction={{ label: 'New Student', icon: 'fa-user-plus', handler: () => setView('add-student') }} />
-                        <StudentList students={studentsWithNextSess} onSelect={handleStudentClick} onLogSession={handleLogSession} />
+                        <StudentList students={studentsWithNextSess} onSelect={handleStudentClick} onLogSession={handleLogSession} isMaster={isMaster} />
                     </React.Fragment>
                 )}
 
@@ -1368,13 +1425,14 @@ const App = () => {
                         onLogSession={handleLogSession}
                         onScheduleSession={(s) => { setSelectedStudent(s); setView('schedule-session'); }}
                         onBack={() => setView('students')}
+                        isMaster={isMaster}
                     />
                 )}
 
                 {view === 'calendar' && (
                     <React.Fragment>
                         <Header title="Academic Calendar" status={status} />
-                        <CalendarView allSessions={allSessions} students={students} onSelectEvent={handleStudentClick} />
+                        <CalendarView allSessions={allSessions} students={students} onSelectEvent={handleStudentClick} isMaster={isMaster} />
                     </React.Fragment>
                 )}
 
@@ -1383,7 +1441,7 @@ const App = () => {
                         const { error } = await supabaseClient.from('students').insert([data]);
                         if (!error) { fetchData(); setView('students'); }
                         else alert(error.message);
-                    }} onCancel={() => setView('students')} />
+                    }} onCancel={() => setView('students')} isMaster={isMaster} />
                 )}
 
                 {view === 'edit-student' && selectedStudent && (
@@ -1391,7 +1449,7 @@ const App = () => {
                         const { error } = await supabaseClient.from('students').update(data).eq('id', data.id);
                         if (!error) { fetchData(); setView('student-profile'); }
                         else alert(error.message);
-                    }} onCancel={() => setView('student-profile')} />
+                    }} onCancel={() => setView('student-profile')} isMaster={isMaster} />
                 )}
 
                 {view === 'log-session' && selectedStudent && (
@@ -1456,7 +1514,7 @@ const App = () => {
                         } catch (err) {
                             alert(err.message);
                         }
-                    }} onCancel={() => { setView('student-profile'); setSelectedSession(null); }} />
+                    }} onCancel={() => { setView('student-profile'); setSelectedSession(null); }} isMaster={isMaster} />
                 )}
 
                 {view === 'schedule-session' && (
@@ -1482,6 +1540,7 @@ const App = () => {
                             else alert(error.message);
                         }}
                         onCancel={() => selectedStudent ? setView('student-profile') : setView('dashboard')}
+                        isMaster={isMaster}
                     />
                 )}
             </main>
