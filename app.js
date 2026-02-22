@@ -55,8 +55,8 @@ const DateTimeInput = ({ label, value, onChange, required }) => {
 
     const datePart = dateVal || new Date().toISOString().split('T')[0];
 
-    const timeOptions = Array.from({ length: 48 }).map((_, i) => {
-        const h = Math.floor(i / 2).toString().padStart(2, '0');
+    const timeOptions = Array.from({ length: 23 }).map((_, i) => {
+        const h = (Math.floor(i / 2) + 9).toString().padStart(2, '0');
         const m = (i % 2 === 0 ? '00' : '30');
         const time = `${h}:${m}`;
         const label = new Date(`2000-01-01T${time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -181,9 +181,7 @@ const SessionItem = ({ session, students, onAction }) => {
             <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                     <span className="font-bold">{student?.name || 'Unknown'}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                        #{session.session_number || '?'}
-                    </span>
+
                 </div>
                 <span className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
                     {new Date(session.session_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
@@ -279,7 +277,7 @@ const StudentList = ({ students, onSelect, onLogSession }) => (
     </div>
 );
 
-const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSession, onBack, isMaster }) => {
+const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSession, onDeleteSession, onBack, isMaster }) => {
     const now = new Date();
 
     // Upcoming: Future sessions that haven't been logged yet
@@ -336,133 +334,174 @@ const StudentProfile = ({ student, sessions, onEdit, onLogSession, onScheduleSes
                     </div>
                 </div>
 
-                {/* SECTION 2: LOG (Right/Large) */}
-                <div className="lg:col-span-8">
-                    <div className="glass-card" style={{ borderTop: '4px solid var(--secondary)' }}>
-                        <h3 className="flex items-center gap-2 mb-6">
-                            <i className="fas fa-file-signature text-secondary"></i> 2. Log & Manage
+                {/* SECTION 2 & 3: APPOINTMENTS (Right/Large) */}
+                <div className="lg:col-span-8 flex flex-col gap-8">
+                    {/* SECTION 2: UPCOMING */}
+                    <div className="glass-card" style={{ borderTop: '4px solid var(--primary)' }}>
+                        <h3 className="flex items-center justify-between mb-6">
+                            <span className="flex items-center gap-2 text-primary">
+                                <i className="fas fa-calendar-check"></i> 2. Upcoming Appointments
+                            </span>
+                            <span className="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full">{upcomingSessions.length}</span>
                         </h3>
-
-                        {/* UPCOMING SUB-SECTION */}
-                        <div className="mb-10">
-                            <h4 className="text-[10px] uppercase tracking-[0.2em] text-muted mb-6 font-black flex items-center justify-between opacity-60">
-                                Upcoming Appointments
-                                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">{upcomingSessions.length}</span>
-                            </h4>
-                            {upcomingSessions.length > 0 ? (
-                                <div className="flex flex-col gap-4">
-                                    {upcomingSessions.map(s => (
-                                        <button
-                                            key={s.id}
-                                            className="session-card-btn upcoming group"
-                                            onClick={() => onLogSession(s)}
-                                        >
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-5">
-                                                    <div className="icon-box">
-                                                        <i className="fas fa-calendar-star text-lg"></i>
+                        {upcomingSessions.length > 0 ? (
+                            <div className="table-container bg-primary/5 rounded-xl border border-primary/20">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-primary/10">
+                                            <th className="p-4 border-b border-primary/20 text-xs text-primary uppercase tracking-wider font-bold">Date & Time</th>
+                                            <th className="p-4 border-b border-primary/20 text-xs text-primary uppercase tracking-wider font-bold">Level & Status</th>
+                                            <th className="p-4 border-b border-primary/20 text-xs text-primary uppercase tracking-wider font-bold">Duration</th>
+                                            <th className="p-4 border-b border-primary/20 text-xs text-primary uppercase tracking-wider font-bold text-center">Attachment</th>
+                                            <th className="p-4 border-b border-primary/20 text-xs text-primary uppercase tracking-wider font-bold text-right pt-4 pr-6">Options</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {upcomingSessions.map(s => (
+                                            <tr key={s.id} className="hover:bg-primary/5 transition-colors border-b border-primary/10 group cursor-pointer" onClick={() => onLogSession(s)}>
+                                                <td className="p-4 align-top">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="font-bold text-main whitespace-nowrap">
+                                                            {new Date(s.session_date).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                        </span>
                                                     </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded font-black">SESSION #{s.session_number || '?'}</span>
-                                                            <p className="text-lg font-bold text-main leading-none">
-                                                                {new Date(s.session_date).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
-                                                            </p>
-                                                        </div>
-                                                        <p className="text-sm text-muted font-medium">
-                                                            <i className="far fa-clock mr-2"></i> {new Date(s.session_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {s.duration} min
-                                                        </p>
+                                                    <div className="text-xs text-muted">
+                                                        <i className="far fa-clock mr-1 text-primary/70"></i> {new Date(s.session_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-3 text-primary opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Open Session</span>
-                                                    <i className="fas fa-arrow-right text-sm"></i>
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted text-center py-8 italic bg-slate-800/20 rounded-2xl border border-dashed border-slate-700/50">No upcoming sessions scheduled</p>
-                            )}
-                        </div>
-
-                        {/* PAST / HISTORY SUB-SECTION */}
-                        <div>
-                            <h4 className="text-[10px] uppercase tracking-[0.2em] text-muted mb-6 font-black flex items-center justify-between opacity-60">
-                                Evaluation & History
-                                <span className="bg-slate-800 text-muted px-3 py-1 rounded-full">{pastSessions.length}</span>
-                            </h4>
-                            {pastSessions.length > 0 ? (
-                                <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-3 custom-scrollbar">
-                                    {pastSessions.map(s => {
-                                        const isPending = !s.topics_covered;
-                                        return (
-                                            <button
-                                                key={s.id}
-                                                className={`session-card-btn ${isPending ? 'pending' : 'history'} group`}
-                                                onClick={() => onLogSession(s)}
-                                            >
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div className="flex items-center gap-5">
-                                                        <div className="icon-box">
-                                                            <i className={`fas ${isPending ? 'fa-pen-circle' : 'fa-check-double'}`}></i>
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className="text-[10px] bg-slate-700/50 text-muted px-2 py-0.5 rounded font-black">#{s.session_number || '?'}</span>
-                                                                <p className="text-lg font-bold text-main leading-none">
-                                                                    {new Date(s.session_date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                                </p>
-                                                            </div>
-                                                            <p className="text-sm text-muted">
-                                                                <i className="far fa-clock mr-2"></i> {new Date(s.session_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        {isPending ? (
-                                                            <span className="btn-label">Log Topics Covered</span>
-                                                        ) : (
-                                                            <div className="flex flex-col items-end gap-1">
-                                                                {isMaster && (
-                                                                    s.paid ? (
-                                                                        <span className="text-[10px] text-success font-black tracking-tighter"><i className="fas fa-check-circle mr-1"></i> SETTLED</span>
-                                                                    ) : (
-                                                                        <span className="text-[10px] text-warning font-black tracking-tighter">UNPAID</span>
-                                                                    )
-                                                                )}
-                                                                <span className="text-[10px] text-muted opacity-40 group-hover:opacity-100 transition-opacity uppercase font-bold">Edit Details</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {isPending ? (
-                                                    <div className="p-3 rounded-xl bg-warning/5 border border-warning/10 border-dashed">
-                                                        <p className="text-sm text-warning font-medium italic mb-1">Pending Documentation</p>
-                                                        <p className="text-xs text-warning/60">This session has passed. Please record what was covered and any homework assigned.</p>
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-sm text-main/80 line-clamp-2 leading-relaxed italic">
-                                                        "{s.topics_covered}"
-                                                    </p>
-                                                )}
-
-                                                <div className="session-footer">
-                                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest"><i className="fas fa-hourglass-half mr-1.5 opacity-40"></i> {s.duration} MINS</span>
-                                                    {isMaster && (
-                                                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest"><i className="fas fa-wallet mr-1.5 opacity-40"></i> {formatCurrency(calculateSessionPayout(s))}</span>
+                                                </td>
+                                                <td className="p-4 align-top">
+                                                    <span className="text-xs text-primary block italic bg-primary/10 px-2 py-1 rounded inline-block font-medium">Upcoming</span>
+                                                </td>
+                                                <td className="p-4 align-top text-sm font-medium">
+                                                    {s.duration} min
+                                                </td>
+                                                <td className="p-4 align-top text-center">
+                                                    {s.attachment_urls && s.attachment_urls.length > 0 ? (
+                                                        <i className="fas fa-paperclip text-primary" title={`${s.attachment_urls.length} attachment(s)`}></i>
+                                                    ) : (
+                                                        <span className="text-muted/30">-</span>
                                                     )}
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted text-center py-10 italic">No historical data available</p>
-                            )}
-                        </div>
+                                                </td>
+                                                <td className="p-4 align-top text-right pr-6">
+                                                    <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            className="btn btn-ghost btn-sm text-primary hover:text-primary/80 hover:bg-primary/10"
+                                                            title="Open Session"
+                                                        >
+                                                            <span className="text-[10px] font-black uppercase tracking-widest mr-2">Open</span>
+                                                            <i className="fas fa-arrow-right"></i>
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-ghost btn-sm text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                                                            onClick={(e) => { e.stopPropagation(); onDeleteSession(s.id); }}
+                                                            title="Delete Session"
+                                                        >
+                                                            <i className="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted text-center py-8 italic bg-slate-800/20 rounded-2xl border border-dashed border-slate-700/50">No upcoming sessions scheduled</p>
+                        )}
+                    </div>
+
+                    {/* SECTION 3: PAST */}
+                    <div className="glass-card" style={{ borderTop: '4px solid var(--secondary)' }}>
+                        <h3 className="flex items-center justify-between mb-6">
+                            <span className="flex items-center gap-2 text-secondary">
+                                <i className="fas fa-history"></i> 3. Past Appointments
+                            </span>
+                            <span className="bg-slate-800 text-muted text-sm px-3 py-1 rounded-full">{pastSessions.length}</span>
+                        </h3>
+                        {pastSessions.length > 0 ? (
+                            <div className="table-container max-h-[600px] overflow-y-auto custom-scrollbar bg-slate-800/20 rounded-xl border border-white/5">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-white/5">
+                                            <th className="p-4 border-b border-white/10 text-xs text-muted uppercase tracking-wider font-bold">Date & Time</th>
+                                            <th className="p-4 border-b border-white/10 text-xs text-muted uppercase tracking-wider font-bold">Duration</th>
+                                            <th className="p-4 border-b border-white/10 text-xs text-muted uppercase tracking-wider font-bold">Details</th>
+                                            <th className="p-4 border-b border-white/10 text-xs text-muted uppercase tracking-wider font-bold text-center">Attachment</th>
+                                            {isMaster && <th className="p-4 border-b border-white/10 text-xs text-muted uppercase tracking-wider font-bold">Payout</th>}
+                                            <th className="p-4 border-b border-white/10 text-xs text-muted uppercase tracking-wider font-bold text-right pt-4 pr-6">Options</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pastSessions.map(s => {
+                                            const isPending = !s.topics_covered;
+                                            return (
+                                                <tr key={s.id} className="hover:bg-white/5 transition-colors border-b border-white/5 group">
+                                                    <td className="p-4 align-top">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="font-bold text-main whitespace-nowrap">
+                                                                {new Date(s.session_date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-xs text-muted">
+                                                            <i className="far fa-clock mr-1"></i> {new Date(s.session_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4 align-top text-sm font-medium">
+                                                        {s.duration} min
+                                                    </td>
+                                                    <td className="p-4 align-top max-w-xs">
+                                                        {isPending ? (
+                                                            <span className="text-xs text-warning block italic bg-warning/10 px-2 py-1 rounded inline-block">Pending Documentation</span>
+                                                        ) : (
+                                                            <span className="text-sm text-main/80 line-clamp-2 italic">"{s.topics_covered}"</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-4 align-top text-center my-auto">
+                                                        {s.attachment_urls && s.attachment_urls.length > 0 ? (
+                                                            <i className="fas fa-paperclip text-white/50" title={`${s.attachment_urls.length} attachment(s)`}></i>
+                                                        ) : (
+                                                            <span className="text-muted/30">-</span>
+                                                        )}
+                                                    </td>
+                                                    {isMaster && (
+                                                        <td className="p-4 align-top">
+                                                            <div className="text-sm font-bold text-main">{formatCurrency(calculateSessionPayout(s))}</div>
+                                                            <div className="mt-1">
+                                                                {s.paid ? (
+                                                                    <span className="text-[10px] text-success font-black tracking-tighter"><i className="fas fa-check-circle mr-1"></i> SETTLED</span>
+                                                                ) : (
+                                                                    <span className="text-[10px] text-warning font-black tracking-tighter">UNPAID</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    )}
+                                                    <td className="p-4 align-top text-right pr-6">
+                                                        <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                className={`btn btn-ghost btn-sm ${isPending ? 'text-warning hover:text-warning/80 hover:bg-warning/10' : 'text-primary hover:text-primary/80 hover:bg-primary/10'}`}
+                                                                onClick={() => onLogSession(s)}
+                                                                title={isPending ? "Log Session" : "Edit Details"}
+                                                            >
+                                                                <i className={`fas ${isPending ? 'fa-pen-circle' : 'fa-edit'}`}></i>
+                                                            </button>
+                                                            <button
+                                                                className="btn btn-ghost btn-sm text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                                                                onClick={() => onDeleteSession(s.id)}
+                                                                title="Delete Session"
+                                                            >
+                                                                <i className="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted text-center py-10 italic">No historical data available</p>
+                        )}
                     </div>
                 </div>
 
@@ -490,7 +529,6 @@ const SessionModal = ({ session, onClose, isMaster }) => {
                     <div key={session.id} className="flex justify-between items-center p-3 border-b border-border hover:bg-glass transition-colors">
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="font-medium">#{session.session_number || '?'}</span>
                                 <span className="text-xs text-muted-foreground" style={{ color: 'var(--text-muted)' }}>
                                     {new Date(session.session_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                                 </span>
@@ -743,7 +781,9 @@ const SessionLogForm = ({ student, session, onSave, onCancel, isMaster }) => {
         homework_assigned: session?.homework_assigned || '',
         duration: session?.duration || 60,
         hourly_rate: session?.hourly_rate || student.pricing || student.pay_rate || 75,
-        paid: session?.paid || false
+        paid: session?.paid || false,
+        teacher: session?.teacher || 'Dr Navneet',
+        next_session_teacher: 'Dr Navneet'
     });
     const [files, setFiles] = useState([]);
     const [uploading, setUploading] = useState(false);
@@ -770,7 +810,7 @@ const SessionLogForm = ({ student, session, onSave, onCancel, isMaster }) => {
                     </div>
                     <div>
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-                            {session ? `Update Session #${session.session_number}` : `Log Session #${nextSessionNum || '...'}`}
+                            {session ? `Update Session` : `Log Session`}
                         </h2>
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
@@ -782,12 +822,7 @@ const SessionLogForm = ({ student, session, onSave, onCancel, isMaster }) => {
                         </div>
                     </div>
                 </div>
-                {nextSessionNum && (
-                    <div className="flex flex-col items-end">
-                        <span className="text-xs uppercase tracking-widest text-muted">Session</span>
-                        <span className="text-2xl font-black text-primary">#{nextSessionNum}</span>
-                    </div>
-                )}
+
             </div>
 
             <form onSubmit={async (e) => {
@@ -811,6 +846,14 @@ const SessionLogForm = ({ student, session, onSave, onCancel, isMaster }) => {
                             <option value={30}>30 min</option>
                             <option value={60}>60 min</option>
                             <option value={90}>90 min</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Teacher</label>
+                        <select value={formData.teacher} onChange={(e) => setFormData({ ...formData, teacher: e.target.value })}>
+                            <option value="Dr Navneet">Dr Navneet</option>
+                            <option value="Dr Harpreet">Dr Harpreet</option>
+                            <option value="Rishabh">Rishabh</option>
                         </select>
                     </div>
                     {isMaster && (
@@ -877,6 +920,14 @@ const SessionLogForm = ({ student, session, onSave, onCancel, isMaster }) => {
                                 onChange={(e) => setFormData({ ...formData, next_session_focus: e.target.value })}
                                 placeholder="e.g. Test Prep, New Unit"
                             />
+                        </div>
+                        <div>
+                            <label>Next Session Teacher</label>
+                            <select value={formData.next_session_teacher} onChange={(e) => setFormData({ ...formData, next_session_teacher: e.target.value })}>
+                                <option value="Dr Navneet">Dr Navneet</option>
+                                <option value="Dr Harpreet">Dr Harpreet</option>
+                                <option value="Rishabh">Rishabh</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -950,6 +1001,7 @@ const ScheduleSessionForm = ({ students, student, onSave, onCancel, isMaster }) 
         student_id: initialStudentId,
         session_date: '',
         duration: 60,
+        teacher: 'Dr Navneet',
         hourly_rate: student?.pricing || student?.pay_rate || 75
     });
 
@@ -1006,12 +1058,7 @@ const ScheduleSessionForm = ({ students, student, onSave, onCancel, isMaster }) 
                         )}
                     </div>
                 </div>
-                {nextSessionNum && (
-                    <div className="flex flex-col items-end">
-                        <span className="text-xs uppercase tracking-widest text-muted">Next up</span>
-                        <span className="text-2xl font-black text-primary">#{nextSessionNum}</span>
-                    </div>
-                )}
+
             </div>
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="flex flex-col gap-6">
                 {!student && (
@@ -1045,16 +1092,25 @@ const ScheduleSessionForm = ({ students, student, onSave, onCancel, isMaster }) 
                                     <option value={90}>90 min</option>
                                 </select>
                             </div>
-                            {isMaster && (
-                                <div className="input-wrapper">
-                                    <label>Hourly Rate</label>
-                                    <select value={formData.hourly_rate} onChange={(e) => setFormData({ ...formData, hourly_rate: Number(e.target.value) })}>
-                                        <option value={75}>$75/hr</option>
-                                        <option value={100}>$100/hr</option>
-                                    </select>
-                                </div>
-                            )}
+                            <div className="input-wrapper">
+                                <label>Teacher</label>
+                                <select value={formData.teacher} onChange={(e) => setFormData({ ...formData, teacher: e.target.value })}>
+                                    <option value="Dr Navneet">Dr Navneet</option>
+                                    <option value="Dr Harpreet">Dr Harpreet</option>
+                                    <option value="Rishabh">Rishabh</option>
+                                </select>
+                            </div>
                         </div>
+
+                        {isMaster && (
+                            <div className="input-wrapper">
+                                <label>Hourly Rate</label>
+                                <select value={formData.hourly_rate} onChange={(e) => setFormData({ ...formData, hourly_rate: Number(e.target.value) })}>
+                                    <option value={75}>$75/hr</option>
+                                    <option value={100}>$100/hr</option>
+                                </select>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -1069,6 +1125,7 @@ const ScheduleSessionForm = ({ students, student, onSave, onCancel, isMaster }) 
 
 const CalendarView = ({ allSessions, students, onSelectEvent, isMaster }) => {
     const [viewDate, setViewDate] = useState(new Date());
+    const [teacherFilter, setTeacherFilter] = useState('All');
 
     const startOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
     const endOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
@@ -1099,7 +1156,19 @@ const CalendarView = ({ allSessions, students, onSelectEvent, isMaster }) => {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h3>{viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                <div className="flex items-center gap-4">
+                    <h3>{viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                    <select
+                        value={teacherFilter}
+                        onChange={e => setTeacherFilter(e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm focus:outline-none"
+                    >
+                        <option value="All">All Teachers</option>
+                        <option value="Dr Navneet">Dr Navneet</option>
+                        <option value="Dr Harpreet">Dr Harpreet</option>
+                        <option value="Rishabh">Rishabh</option>
+                    </select>
+                </div>
                 <div className="flex gap-2">
                     <button className="btn btn-ghost" onClick={() => changeMonth(-1)}><i className="fas fa-chevron-left"></i></button>
                     <button className="btn btn-ghost" onClick={() => setViewDate(new Date())}>Today</button>
@@ -1113,6 +1182,8 @@ const CalendarView = ({ allSessions, students, onSelectEvent, isMaster }) => {
                     const localDayStr = d.date.toDateString();
                     const daySessions = allSessions.filter(s => {
                         if (!s.session_date) return false;
+                        if (teacherFilter !== 'All' && s.teacher && s.teacher !== teacherFilter) return false;
+                        if (teacherFilter !== 'All' && !s.teacher && teacherFilter !== 'Dr Navneet') return false; // Legacy sessions default to Dr Navneet if unassigned
                         return new Date(s.session_date).toDateString() === localDayStr;
                     });
 
@@ -1130,9 +1201,16 @@ const CalendarView = ({ allSessions, students, onSelectEvent, isMaster }) => {
                                     >
                                         <div className="flex flex-col gap-1">
                                             <div className="flex justify-between items-center bg-white/10 rounded px-1.5 py-0.5">
-                                                <span style={{ fontWeight: 800, fontSize: '0.65rem' }} className="truncate max-w-[65px]">
-                                                    {student ? student.name.split(' ')[0] : 'Unknown'}
-                                                </span>
+                                                <div className="flex items-center gap-1 min-w-0 pr-1">
+                                                    <span style={{ fontWeight: 800, fontSize: '0.65rem' }} className="truncate max-w-[55px]">
+                                                        {student ? student.name.split(' ')[0] : 'Unknown'}
+                                                    </span>
+                                                    {(teacherFilter === 'All' && s.teacher) && (
+                                                        <span className="text-[0.55rem] uppercase font-bold text-muted bg-black/20 px-1 rounded truncate">
+                                                            {s.teacher.replace('Dr ', '')}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 {isMaster && (
                                                     <span style={{ fontWeight: 800, fontSize: '0.65rem', color: s.paid ? '#4ade80' : '#f87171' }}>{s.paid ? '\u2713' : '?'}</span>
                                                 )}
@@ -1337,6 +1415,21 @@ const App = () => {
         setView('student-profile');
     };
 
+    const handleDeleteSession = async (sessionId) => {
+        if (window.confirm('Are you sure you want to delete this session?')) {
+            const { error } = await supabaseClient.from('sessions').delete().eq('id', sessionId);
+            if (!error) {
+                fetchData();
+                if (selectedStudent) {
+                    const updatedSessions = await supabaseClient.from('sessions').select('*').eq('student_id', selectedStudent.id).order('session_date', { ascending: false });
+                    setSelectedStudentSessions(updatedSessions.data || []);
+                }
+            } else {
+                alert('Error deleting session: ' + error.message);
+            }
+        }
+    };
+
     const handleLogSession = (target) => {
         if (target.student_id) { // It's a session object
             const std = students.find(s => s.id === target.student_id);
@@ -1424,6 +1517,7 @@ const App = () => {
                         onEdit={(s) => { setSelectedStudent(s); setView('edit-student'); }}
                         onLogSession={handleLogSession}
                         onScheduleSession={(s) => { setSelectedStudent(s); setView('schedule-session'); }}
+                        onDeleteSession={handleDeleteSession}
                         onBack={() => setView('students')}
                         isMaster={isMaster}
                     />
@@ -1455,7 +1549,7 @@ const App = () => {
                 {view === 'log-session' && selectedStudent && (
                     <SessionLogForm student={selectedStudent} session={selectedSession} onSave={async (formData, files, sessionId) => {
                         try {
-                            const { next_session_date, next_session_focus, ...sessionData } = formData;
+                            const { next_session_date, next_session_focus, next_session_teacher, ...sessionData } = formData;
                             let attachment_urls = selectedSession?.attachment_urls || [];
 
                             // Handle File Uploads
@@ -1496,7 +1590,8 @@ const App = () => {
                                     student_id: Number(selectedStudent.id),
                                     session_date: new Date(next_session_date).toISOString(),
                                     hourly_rate: Number(formData.hourly_rate),
-                                    duration: 60
+                                    duration: 60,
+                                    teacher: next_session_teacher
                                 }]);
                             }
 
